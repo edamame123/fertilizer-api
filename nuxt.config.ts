@@ -1,32 +1,74 @@
-// https://nuxt.com/docs/api/configuration/nuxt-config
+// fertilizer-api/nuxt.config.ts
 export default defineNuxtConfig({
-  // https://nuxt.com/modules
-  modules: ["@nuxthub/core", "@nuxt/eslint", "@nuxt/test-utils"],
-
-  // https://devtools.nuxt.com
-  devtools: { enabled: true },
-
-  // Env variables - https://nuxt.com/docs/getting-started/configuration#environment-variables-and-private-tokens
-  runtimeConfig: {
-    public: {
-      // Can be overridden by NUXT_PUBLIC_HELLO_TEXT environment variable
-      helloText: "Hello from the Edge 👋",
-    },
-  },
-  // https://nuxt.com/docs/getting-started/upgrade#testing-nuxt-4
+  compatibilityDate: "2024-07-30",
   future: { compatibilityVersion: 4 },
-  compatibilityDate: "2025-03-01",
+  modules: ["@nuxthub/core", "@nuxt/eslint", "nuxt-resend"],
 
-  // https://hub.nuxt.com/docs/getting-started/installation#options
-  hub: {},
+  devtools: { enabled: false },
+  ssr: false,
 
-  // Development config
+  runtimeConfig: {
+    resendApiKey: process.env.RESEND_API_KEY,
+    public: {},
+  },
+
   eslint: {
     config: {
       stylistic: {
         quotes: "single",
         commaDangle: "never",
       },
+    },
+  },
+
+  hub: {
+    database: true,
+    kv: true,
+    blob: false,
+    // remote設定のみ（NuxtHubが自動でwrangler.tomlを読み込む）
+    remote: process.env.NODE_ENV === "production",
+  },
+
+  nitro: {
+    preset: "cloudflare-pages",
+    experimental: {
+      wasm: false,
+    },
+    externals: {
+      inline: ["better-sqlite3"],
+    },
+    routeRules: {
+      "/api/**": {
+        cors: true,
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        },
+      },
+    },
+  },
+
+  vite: {
+    optimizeDeps: {
+      exclude: ["better-sqlite3"],
+    },
+    build: {
+      rollupOptions: {
+        external: ["better-sqlite3"],
+      },
+    },
+  },
+
+  typescript: {
+    strict: true,
+    typeCheck: false,
+  },
+
+  css: [],
+  app: {
+    head: {
+      title: "Fertilizer API Server",
     },
   },
 });
