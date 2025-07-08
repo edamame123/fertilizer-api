@@ -33,12 +33,12 @@ export default defineEventHandler(async (event) => {
         contextKeys: safeCheck(() => Object.keys(context), []),
       },
 
-      nuxthub: {
-        hubDatabaseType: getType(hubDatabase),
-        hubDatabaseTest: safeCheck(() => {
-          const db = hubDatabase();
-          return "hubDatabase() success";
-        }, "hubDatabase() failed"),
+      d1Database: {
+        contextDB: safeCheck(() => {
+          const db = context.DB || context.cloudflare?.env?.DB;
+          return db ? "D1 binding available" : "D1 binding not found";
+        }, "D1 binding check failed"),
+        dbType: getType(context.DB || context.cloudflare?.env?.DB),
       },
 
       imports: {

@@ -20,7 +20,7 @@ export default defineEventHandler(async (event) => {
     logger.info("Initializing type-category cache", { requestId });
 
     try {
-      await refreshTypeCategories(event);
+      await refreshTypeCategories(event.context);
       process.cacheInitialized = true;
       logger.info("Type-category cache initialized successfully", {
         requestId,

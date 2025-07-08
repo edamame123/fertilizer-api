@@ -3,5 +3,5 @@ compatibility_date = "2023-09-01"
 
 [[d1_databases]]
 binding = "DB"
-database_name = "fertilizer"  # 本番用データベース
-database_id = "58071cc3-ba20-4696-aa53-7ecb3017ccde"
+database_name = "fertilizer"
+database_id = "local"

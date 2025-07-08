@@ -22,11 +22,11 @@ export default defineNuxtConfig({
   },
 
   hub: {
-    database: true,
+    database: true,  // NuxtHubのDB機能を有効化
     kv: true,
     blob: false,
-    // remote設定のみ（NuxtHubが自動でwrangler.tomlを読み込む）
-    remote: process.env.NODE_ENV === "production",
+    // ローカル開発環境では明示的にfalse
+    remote: false,
   },
 
   nitro: {

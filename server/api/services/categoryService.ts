@@ -25,8 +25,8 @@ export default {
     const requestId = event.context.requestId || "unknown";
 
     try {
-      // NuxtHub統一
-      const db = hubDatabase();
+      // D1バインディング直接使用
+      const db = event.context.DB;
 
       const sqlQuery =
         "SELECT id, name, master_id AS type_id FROM m_category WHERE master_id = ? AND id IS NOT NULL";
@@ -79,8 +79,8 @@ export default {
     const requestId = event.context.requestId || "unknown";
 
     try {
-      // NuxtHub統一
-      const db = hubDatabase();
+      // D1バインディング直接使用
+      const db = event.context.DB;
 
       const sqlQuery =
         "SELECT id, name, master_id AS type_id FROM m_category WHERE id = ? AND id IS NOT NULL";
