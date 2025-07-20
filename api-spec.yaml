@@ -1,0 +1,438 @@
+openapi: 3.0.3
+info:
+  title: Fertilizer API Server
+  description: |
+    Nuxt 3で構築された肥料APIサーバーです。REST API経由で肥料データを提供します。
+    
+    ## 主な機能
+    - 高度なフィルタリング機能による肥料検索
+    - 成分範囲、タイプ、カテゴリによる複雑な検索
+    - ページネーション対応
+    - 構造化エラーレスポンス
+    
+    ## 認証
+    パブリックAPIは認証不要で利用できます。
+    
+  version: 1.0.0
+  contact:
+    name: API Support
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:3000
+    description: 開発環境
+  - url: https://fertilizer-api.example.com
+    description: 本番環境
+
+paths:
+  /api/ping:
+    get:
+      summary: ヘルスチェック
+      description: サーバーの動作状況を確認します
+      tags:
+        - Utility
+      responses:
+        '200':
+          description: サーバーが正常に動作中
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "OK"
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  /api/public/fertilizers:
+    get:
+      summary: 肥料データ取得
+      description: |
+        肥料データをフィルタリング条件に基づいて取得します。
+        高度な検索機能とページネーションに対応しています。
+      tags:
+        - Public API
+      parameters:
+        - name: name
+          in: query
+          description: 商品名での部分一致検索
+          schema:
+            type: string
+            example: "テスト肥料"
+        - name: company
+          in: query
+          description: 会社名での部分一致検索
+          schema:
+            type: string
+            example: "テスト会社"
+        - name: reg_no
+          in: query
+          description: 登録番号での検索
+          schema:
+            type: string
+            example: "TEST001"
+        - name: reg_date_from
+          in: query
+          description: 登録日の開始日（YYYY-MM-DD形式）
+          schema:
+            type: string
+            format: date
+            example: "2024-01-01"
+        - name: reg_date_to
+          in: query
+          description: 登録日の終了日（YYYY-MM-DD形式）
+          schema:
+            type: string
+            format: date
+            example: "2024-12-31"
+        - name: level
+          in: query
+          description: レベルでの検索
+          schema:
+            type: string
+            example: "1"
+        - name: shape
+          in: query
+          description: 形状での検索
+          schema:
+            type: string
+            example: "粒状"
+        - name: effect
+          in: query
+          description: 効果での検索
+          schema:
+            type: string
+        - name: selectedTypeId
+          in: query
+          description: 選択されたタイプID
+          schema:
+            type: string
+            example: "1"
+        - name: typeFilters
+          in: query
+          description: |
+            タイプフィルターのJSON配列。単一オブジェクトまたは配列形式で指定可能。
+            例: [{"id":"1","type":"有機質系","category":"堆肥"}]
+          schema:
+            type: string
+            example: '[{"id":"1","type":"有機質系","category":"堆肥"}]'
+        - name: components
+          in: query
+          description: |
+            成分フィルターのJSON形式。各成分に最小値、最大値、空値含有の設定が可能。
+            例: {"nitrogen":{"min":5,"max":15,"includeEmpty":false}}
+          schema:
+            type: string
+            example: '{"nitrogen":{"min":5,"max":15,"includeEmpty":false}}'
+        - name: page
+          in: query
+          description: ページ番号（1から開始）
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+            example: 1
+        - name: perPage
+          in: query
+          description: 1ページあたりの取得件数
+          schema:
+            type: integer
+            enum: [10, 20, 50, 100]
+            default: 10
+            example: 10
+        - name: showFormName
+          in: query
+          description: 形状名の表示設定
+          schema:
+            type: string
+            enum: ["true", "false"]
+            default: "false"
+        - name: sortBy
+          in: query
+          description: ソートフィールド
+          schema:
+            type: string
+            default: "id"
+            example: "id"
+        - name: sortOrder
+          in: query
+          description: ソート順序
+          schema:
+            type: string
+            enum: ["asc", "desc", "ASC", "DESC"]
+            default: "desc"
+            example: "desc"
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedFertilizerResponse'
+              examples:
+                success:
+                  summary: 成功レスポンス例
+                  value:
+                    meta:
+                      status: "success"
+                      version: "1.0"
+                      requestId: "b5cd3190-9d14-4405-8e4e-58492fe35372"
+                      timestamp: "2025-07-20T05:52:01.845Z"
+                    data:
+                      - id: 51506
+                        level: 1
+                        reg_no: "生109324号"
+                        reg_date: "2025-03-25"
+                        company: "サンプル企業"
+                        prod_name: "サンプル肥料"
+                        form_name: "粒状"
+                        nitrogen: 8.5
+                        phos: 0
+                        k: 2
+                        ca: 8
+                        mg: 3.5
+                        category_id: 142
+                    pagination:
+                      total: 51506
+                      page: 1
+                      perPage: 10
+                      pageCount: 5151
+        '400':
+          description: バリデーションエラー
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/public/categories:
+    get:
+      summary: カテゴリデータ取得
+      description: 指定されたタイプIDに基づいてカテゴリデータを取得します
+      tags:
+        - Public API
+      parameters:
+        - name: type_id
+          in: query
+          required: true
+          description: タイプID
+          schema:
+            type: string
+            example: "1"
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoriesResponse'
+        '400':
+          description: type_idパラメータが必要です
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/public/types:
+    get:
+      summary: タイプデータ取得
+      description: 利用可能なすべてのタイプデータを取得します
+      tags:
+        - Public API
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TypesResponse'
+
+components:
+  schemas:
+    ApiMeta:
+      type: object
+      properties:
+        status:
+          type: string
+          example: "success"
+        version:
+          type: string
+          example: "1.0"
+        requestId:
+          type: string
+          example: "dec6baf2-8bbe-445d-b02c-e882cab73869"
+        timestamp:
+          type: string
+          format: date-time
+          example: "2025-07-20T01:12:31.943Z"
+
+    Pagination:
+      type: object
+      properties:
+        total:
+          type: integer
+          description: 総件数
+          example: 2
+        page:
+          type: integer
+          description: 現在のページ番号
+          example: 1
+        perPage:
+          type: integer
+          description: 1ページあたりの件数
+          example: 10
+        pageCount:
+          type: integer
+          description: 総ページ数
+          example: 1
+
+    Fertilizer:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        level:
+          type: integer
+          nullable: true
+          example: 1
+        reg_no:
+          type: string
+          nullable: true
+          description: 登録番号
+          example: "TEST001"
+        reg_date:
+          type: string
+          format: date
+          nullable: true
+          description: 登録日
+        company:
+          type: string
+          nullable: true
+          description: 企業名
+          example: "テスト会社A"
+        prod_name:
+          type: string
+          nullable: true
+          description: 商品名
+          example: "テスト肥料1"
+        form_name:
+          type: string
+          nullable: true
+          description: 形状
+          example: "粒状"
+        nitrogen:
+          type: number
+          nullable: true
+          description: 窒素含有量
+          example: 10.0
+        phos:
+          type: number
+          nullable: true
+          description: リン酸含有量
+          example: 5.0
+        k:
+          type: number
+          nullable: true
+          description: カリ含有量
+          example: 8.0
+        category_id:
+          type: integer
+          nullable: true
+          description: カテゴリID
+          example: 1
+
+    Category:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          description: カテゴリ名
+          example: "堆肥"
+        type_id:
+          type: integer
+          description: タイプID
+          example: 1
+
+    Type:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        category:
+          type: string
+          description: タイプ名
+          example: "有機質系"
+
+    PaginatedFertilizerResponse:
+      type: object
+      properties:
+        meta:
+          $ref: '#/components/schemas/ApiMeta'
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Fertilizer'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    CategoriesResponse:
+      type: object
+      properties:
+        meta:
+          $ref: '#/components/schemas/ApiMeta'
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Category'
+
+    TypesResponse:
+      type: object
+      properties:
+        meta:
+          $ref: '#/components/schemas/ApiMeta'
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Type'
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: boolean
+          example: true
+        statusCode:
+          type: integer
+          example: 400
+        data:
+          type: object
+          properties:
+            error:
+              type: object
+              properties:
+                code:
+                  type: string
+                  example: "MISSING_PARAMETER"
+                message:
+                  type: string
+                  example: "type_idパラメータが必要です"
+                requestId:
+                  type: string
+                  example: "afaf42fa-aad2-43ce-931b-f8755abf3177"
+                timestamp:
+                  type: string
+                  format: date-time
+                  example: "2025-07-20T01:13:29.622Z"
+
+tags:
+  - name: Public API
+    description: 認証不要のパブリックAPI
+  - name: Utility
+    description: ユーティリティエンドポイント
