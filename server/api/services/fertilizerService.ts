@@ -22,6 +22,9 @@ import { getTypeCategories } from "~~/server/utils/cache";
 export async function getFertilizers(params: QueryParams, context: any) {
   const requestId = context.requestId || "unknown";
 
+  console.log("=== getFertilizers FUNCTION START ===", requestId);
+  console.log("Received params:", params);
+
   try {
     logger.debug(
       "Fertilizer service: processing request",
@@ -48,6 +51,17 @@ export async function getFertilizers(params: QueryParams, context: any) {
     const regNoFilter = params.reg_no;
     const regDateFrom = params.reg_date_from;
     const regDateTo = params.reg_date_to;
+
+    // デバッグ: 日付パラメータの値を確認
+    logger.info("Date parameters received", {
+      requestId,
+      regDateFrom: regDateFrom,
+      regDateTo: regDateTo,
+      regDateFromType: typeof regDateFrom,
+      regDateToType: typeof regDateTo,
+      regDateFromTruthy: !!regDateFrom,
+      regDateToTruthy: !!regDateTo,
+    });
     const levelFilter = params.level || "1,2";
     const shapeFilter = params.shape || null;
     const effectFilter = params.effect || null;
@@ -105,13 +119,27 @@ export async function getFertilizers(params: QueryParams, context: any) {
     }
 
     if (regDateFrom) {
+      const formattedDateFrom = new Date(regDateFrom).toISOString().split("T")[0];
       whereConditions.push("date(reg_date) >= date(?)");
-      queryParams.push(new Date(regDateFrom).toISOString().split("T")[0]);
+      queryParams.push(formattedDateFrom);
+      logger.info("Registration date from filter added", {
+        requestId,
+        original: regDateFrom,
+        formatted: formattedDateFrom,
+        condition: "date(reg_date) >= date(?)"
+      });
     }
 
     if (regDateTo) {
+      const formattedDateTo = new Date(regDateTo).toISOString().split("T")[0];
       whereConditions.push("date(reg_date) <= date(?)");
-      queryParams.push(new Date(regDateTo).toISOString().split("T")[0]);
+      queryParams.push(formattedDateTo);
+      logger.debug("Registration date to filter added", {
+        requestId,
+        original: regDateTo,
+        formatted: formattedDateTo,
+        condition: "date(reg_date) <= date(?)"
+      });
     }
 
     if (nameFilter) {
@@ -201,6 +229,15 @@ export async function getFertilizers(params: QueryParams, context: any) {
         ${orderClause} 
         LIMIT ? OFFSET ?
       `;
+
+      logger.debug("Executing SQL query", {
+        requestId,
+        query: dataQuery,
+        params: queryParams,
+        limit: perPage,
+        offset: offset,
+        whereConditions: whereConditions,
+      });
 
       const queryResult = await db
         .prepare(dataQuery)

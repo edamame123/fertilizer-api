@@ -10,8 +10,11 @@ import { ErrorCode, createApiError } from "../../utils/errorHandler";
 export default defineEventHandler(async (event) => {
   const requestId = event.context.requestId || "unknown";
 
+  console.log("=== FERTILIZERS API ENDPOINT CALLED ===", requestId);
+  
   try {
     const rawQuery = getQuery(event);
+    console.log("Raw query:", rawQuery);
 
     logger.debug("Public Fertilizers API request", {
       requestId,
@@ -83,7 +86,9 @@ export default defineEventHandler(async (event) => {
     };
 
     // サービス層のみを呼び出し（DB操作なし）
+    console.log("=== CALLING getFertilizers ===", query);
     const result = await getFertilizers(query, event.context);
+    console.log("=== getFertilizers RESULT ===", result?.total);
 
     // 既存のレスポンス形式を保持
     return formatPaginatedResponse(

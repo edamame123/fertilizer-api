@@ -199,14 +199,51 @@ export function validateComponents(
 // タイプフィルター検証のためのユーティリティ関数
 // タイプフィルター検証のためのユーティリティ関数の修正
 export function validateTypeFilters(
-  typeFiltersStr: string | undefined,
+  typeFiltersStr: string | any[] | undefined,
   requestId: string
 ) {
   if (!typeFiltersStr) return [];
 
+  // 型チェック: 配列の場合は既にパース済みとして処理
+  if (Array.isArray(typeFiltersStr)) {
+    logger.debug(`typeFiltersは既に配列として受信`, {
+      requestId,
+      array: typeFiltersStr,
+      length: typeFiltersStr.length,
+    });
+    
+    // 配列として検証
+    const result = z.array(filterTagSchema).safeParse(typeFiltersStr);
+    
+    if (!result.success) {
+      const issues = result.error.errors.map((err) => ({
+        field: `typeFilters${
+          err.path.length > 0 ? "." + err.path.join(".") : ""
+        }`,
+        issue: err.message,
+      }));
+
+      logger.warn(
+        `タイプフィルターバリデーションエラー（配列）`,
+        { requestId },
+        { issues }
+      );
+
+      throw createApiError(
+        400,
+        ErrorCode.VALIDATION_ERROR,
+        "タイプフィルターが無効です",
+        issues,
+        requestId
+      );
+    }
+
+    return result.data;
+  }
+
   logger.debug(`タイプフィルターバリデーション開始`, {
     requestId,
-    filtersLength: typeFiltersStr.length,
+    filtersLength: typeof typeFiltersStr === 'string' ? typeFiltersStr.length : 'N/A',
   });
 
   // デバッグ: 受け取った生の文字列をログ出力
@@ -310,8 +347,8 @@ export function validateTypeFilters(
         error: e instanceof Error ? e.message : String(e),
         stack: e instanceof Error ? e.stack : undefined,
         input: typeFiltersStr,
-        inputLength: typeFiltersStr.length,
-        firstChars: typeFiltersStr.substring(0, 100),
+        inputLength: typeof typeFiltersStr === 'string' ? typeFiltersStr.length : 'N/A',
+        firstChars: typeof typeFiltersStr === 'string' ? typeFiltersStr.substring(0, 100) : String(typeFiltersStr).substring(0, 100),
       }
     );
 
