@@ -209,12 +209,50 @@ export function validateTypeFilters(
     filtersLength: typeFiltersStr.length,
   });
 
+  // デバッグ: 受け取った生の文字列をログ出力
+  logger.debug(`受け取った typeFilters 文字列`, {
+    requestId,
+    raw: typeFiltersStr,
+    type: typeof typeFiltersStr,
+  });
+
   try {
+    // URLデコードが必要かチェック
+    let decodedStr = typeFiltersStr;
+    if (typeFiltersStr.includes('%')) {
+      try {
+        decodedStr = decodeURIComponent(typeFiltersStr);
+        logger.debug(`URLデコード後`, {
+          requestId,
+          decoded: decodedStr,
+        });
+      } catch (decodeError) {
+        logger.warn(`URLデコードに失敗`, {
+          requestId,
+          error: decodeError instanceof Error ? decodeError.message : String(decodeError),
+        });
+        // デコードに失敗した場合は元の文字列を使用
+      }
+    }
+
     // 文字列をパース
-    const parsed = JSON.parse(typeFiltersStr);
+    const parsed = JSON.parse(decodedStr);
+    
+    logger.debug(`JSON.parse成功`, {
+      requestId,
+      parsed: parsed,
+      isArray: Array.isArray(parsed),
+      type: typeof parsed,
+    });
 
     // 単一オブジェクトの場合は配列に変換
     const dataToValidate = Array.isArray(parsed) ? parsed : [parsed];
+    
+    logger.debug(`バリデーション用データ準備完了`, {
+      requestId,
+      dataToValidate: dataToValidate,
+      length: dataToValidate.length,
+    });
 
     // 配列として検証
     const result = z.array(filterTagSchema).safeParse(dataToValidate);
@@ -270,7 +308,10 @@ export function validateTypeFilters(
       },
       {
         error: e instanceof Error ? e.message : String(e),
+        stack: e instanceof Error ? e.stack : undefined,
         input: typeFiltersStr,
+        inputLength: typeFiltersStr.length,
+        firstChars: typeFiltersStr.substring(0, 100),
       }
     );
 
